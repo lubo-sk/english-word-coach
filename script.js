@@ -30,6 +30,19 @@ const STORAGE_KEYS = {
   history: "ewc_history_v1"
 };
 
+const SAME_WORD_ALLOWLIST = new Set([
+  "hotel",
+  "internet",
+  "taxi",
+  "radio",
+  "video",
+  "menu",
+  "park",
+  "film",
+  "sport",
+  "email"
+]);
+
 const fallbackDictionary = {
   dom: { translation: "house", easy: "This is my house.", description: "A house is a building where people live.", synonym: "home", pronunciation: "/haʊs/" },
   pes: { translation: "dog", easy: "The dog is friendly.", description: "A dog is an animal that people often keep as a pet.", synonym: "canine", pronunciation: "/dɔːg/" },
@@ -89,6 +102,26 @@ function sanitizeTranslation(value) {
     .replace(/^[^\p{L}]+|[^\p{L}]+$/gu, "");
 }
 
+function looksLikeEnglishText(value) {
+  return /^[a-z][a-z'\- ]*$/.test(value);
+}
+
+function isValidCandidate(direction, source, candidate) {
+  if (!candidate || candidate === "null") {
+    return false;
+  }
+
+  if (candidate === source) {
+    return SAME_WORD_ALLOWLIST.has(candidate);
+  }
+
+  if (direction === "sk-en") {
+    return looksLikeEnglishText(candidate);
+  }
+
+  return true;
+}
+
 function makeEasySentence(word, partOfSpeech, example) {
   if (example && example.length <= 120) {
     return example;
@@ -144,11 +177,17 @@ async function fetchTranslation(sourceWord, direction) {
   const payload = await response.json();
   const normalizedSource = sanitizeTranslation(sourceWord);
   const rawTranslated = payload?.responseData?.translatedText || "";
-  const matchCandidates = (payload?.matches || [])
-    .map((entry) => entry?.translation || "")
-    .filter(Boolean);
-  const candidates = [rawTranslated, ...matchCandidates].map((item) => sanitizeTranslation(item));
-  const picked = candidates.find((candidate) => candidate && candidate !== "null" && candidate !== normalizedSource);
+  const matchCandidates = (payload?.matches || []).map((entry) => ({
+    text: sanitizeTranslation(entry?.translation || ""),
+    quality: Number(entry?.quality || 0)
+  }));
+  const primaryCandidate = sanitizeTranslation(rawTranslated);
+
+  const ranked = [primaryCandidate, ...matchCandidates.sort((a, b) => b.quality - a.quality).map((item) => item.text)]
+    .map((item) => sanitizeTranslation(item))
+    .filter((item, index, arr) => item && arr.indexOf(item) === index);
+
+  const picked = ranked.find((candidate) => isValidCandidate(direction, normalizedSource, candidate));
 
   if (!picked) {
     throw new Error("No translation found.");
@@ -491,7 +530,7 @@ form.addEventListener("submit", async (event) => {
     showResult(currentResult);
     rememberHistory(currentResult);
   } catch (error) {
-    statusText.textContent = "Nepodarilo sa nacitat online data. Skus ine slovo alebo pouzi zakladne slova (dom, skola, voda, book, friend).";
+    statusText.textContent = "Preklad sa nepodarilo overit (slaba kvalita dat). Skus prosim ine slovo alebo zakladne slova (dom, pes, skola, voda, book, friend).";
     result.classList.add("hidden");
     resultActions.classList.add("hidden");
   } finally {

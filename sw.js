@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = "english-word-coach-v5";
+﻿const CACHE_NAME = "english-word-coach-v6";
 const CORE_ASSETS = [
   "./",
   "./index.html",
@@ -49,6 +49,7 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
 
 
 
