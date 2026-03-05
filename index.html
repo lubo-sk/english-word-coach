@@ -26,8 +26,12 @@
 
     <section class="input-card" aria-label="Prekladac slovicka">
       <form id="wordForm" class="word-form">
-        <label for="slovakWord">Slovenske slovo</label>
+        <label for="slovakWord" id="sourceLabel">Slovenske slovo</label>
         <div class="input-row">
+          <select id="direction" aria-label="Smer prekladu">
+            <option value="sk-en">SK -> EN</option>
+            <option value="en-sk">EN -> SK</option>
+          </select>
           <input id="slovakWord" name="slovakWord" type="text" placeholder="napr. dom" required autocomplete="off" />
           <button type="submit" id="generateBtn">Generovat</button>
         </div>
@@ -37,7 +41,7 @@
 
     <section id="result" class="result-grid hidden" aria-live="polite">
       <article class="result-card">
-        <h2>Preklad</h2>
+        <h2 id="translationHeading">Preklad</h2>
         <p id="translationText"></p>
       </article>
       <article class="result-card">
@@ -51,6 +55,34 @@
       <article class="result-card">
         <h2>Synonymum</h2>
         <p id="synonymText"></p>
+      </article>
+      <article class="result-card image-card">
+        <h2>Obrazok</h2>
+        <img id="wordImage" class="word-image hidden" alt="Obrazok slova" />
+        <p id="imageFallback" class="image-fallback">Obrazok sa nacitava...</p>
+      </article>
+    </section>
+
+    <section id="resultActions" class="result-actions hidden" aria-label="Akcie vysledku">
+      <button id="saveFavoriteBtn" type="button">Ulozit do oblubenych</button>
+    </section>
+
+    <section class="memory-grid" aria-label="Tvoje slovicka">
+      <article class="result-card memory-card">
+        <div class="memory-head">
+          <h2>Oblubene</h2>
+        </div>
+        <ul id="favoritesList" class="memory-list"></ul>
+        <p id="favoritesEmpty" class="memory-empty">Zatial prazdne.</p>
+      </article>
+
+      <article class="result-card memory-card">
+        <div class="memory-head">
+          <h2>Historia</h2>
+          <button id="clearHistoryBtn" type="button" class="ghost-btn">Vymazat</button>
+        </div>
+        <ul id="historyList" class="memory-list"></ul>
+        <p id="historyEmpty" class="memory-empty">Zatial prazdne.</p>
       </article>
     </section>
   </main>
