@@ -1,0 +1,60 @@
+﻿<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0670f8" />
+  <title>English Word Coach</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700&family=Sora:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="background-glow glow-left"></div>
+  <div class="background-glow glow-right"></div>
+
+  <main class="app-shell">
+    <header class="hero">
+      <p class="kicker">Smart English Practice</p>
+      <h1>Preloz si slovicko za sekundu</h1>
+      <p class="subtitle">Zadaj slovenske slovo a ziskas preklad, jednoduchu vetu, opis a synonymum.</p>
+    </header>
+
+    <section class="input-card" aria-label="Prekladac slovicka">
+      <form id="wordForm" class="word-form">
+        <label for="slovakWord">Slovenske slovo</label>
+        <div class="input-row">
+          <input id="slovakWord" name="slovakWord" type="text" placeholder="napr. dom" required autocomplete="off" />
+          <button type="submit" id="generateBtn">Generovat</button>
+        </div>
+      </form>
+      <p id="status" class="status" aria-live="polite"></p>
+    </section>
+
+    <section id="result" class="result-grid hidden" aria-live="polite">
+      <article class="result-card">
+        <h2>Preklad</h2>
+        <p id="translationText"></p>
+      </article>
+      <article class="result-card">
+        <h2>Lahka veta</h2>
+        <p id="easySentenceText"></p>
+      </article>
+      <article class="result-card">
+        <h2>Opis slova</h2>
+        <p id="descriptionText"></p>
+      </article>
+      <article class="result-card">
+        <h2>Synonymum</h2>
+        <p id="synonymText"></p>
+      </article>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
