@@ -14,6 +14,9 @@ const translationText = document.getElementById("translationText");
 const easySentenceText = document.getElementById("easySentenceText");
 const descriptionText = document.getElementById("descriptionText");
 const synonymText = document.getElementById("synonymText");
+const pronunciationText = document.getElementById("pronunciationText");
+const playTranslationBtn = document.getElementById("playTranslationBtn");
+const playPronunciationBtn = document.getElementById("playPronunciationBtn");
 const wordImage = document.getElementById("wordImage");
 const imageFallback = document.getElementById("imageFallback");
 
@@ -28,11 +31,11 @@ const STORAGE_KEYS = {
 };
 
 const fallbackDictionary = {
-  dom: { translation: "house", easy: "This is my house.", description: "A house is a building where people live.", synonym: "home" },
-  skola: { translation: "school", easy: "I go to school every morning.", description: "A school is a place where people learn.", synonym: "academy" },
-  voda: { translation: "water", easy: "I drink water every day.", description: "Water is a clear liquid that people need to live.", synonym: "aqua" },
-  kniha: { translation: "book", easy: "I read a book at night.", description: "A book is a set of written pages.", synonym: "volume" },
-  priatel: { translation: "friend", easy: "My friend is very kind.", description: "A friend is a person you trust and like.", synonym: "companion" }
+  dom: { translation: "house", easy: "This is my house.", description: "A house is a building where people live.", synonym: "home", pronunciation: "/haʊs/" },
+  skola: { translation: "school", easy: "I go to school every morning.", description: "A school is a place where people learn.", synonym: "academy", pronunciation: "/skuːl/" },
+  voda: { translation: "water", easy: "I drink water every day.", description: "Water is a clear liquid that people need to live.", synonym: "aqua", pronunciation: "/ˈwɔːtər/" },
+  kniha: { translation: "book", easy: "I read a book at night.", description: "A book is a set of written pages.", synonym: "volume", pronunciation: "/bʊk/" },
+  priatel: { translation: "friend", easy: "My friend is very kind.", description: "A friend is a person you trust and like.", synonym: "companion", pronunciation: "/frend/" }
 };
 
 const reverseFallback = Object.entries(fallbackDictionary).reduce((acc, [sk, value]) => {
@@ -40,7 +43,8 @@ const reverseFallback = Object.entries(fallbackDictionary).reduce((acc, [sk, val
     translation: sk,
     easy: value.easy,
     description: value.description,
-    synonym: value.synonym
+    synonym: value.synonym,
+    pronunciation: value.pronunciation
   };
   return acc;
 }, {});
@@ -163,12 +167,17 @@ async function fetchWordDetails(englishWord) {
   const firstEntry = payload?.[0];
   const firstMeaning = firstEntry?.meanings?.[0];
   const firstDefinition = firstMeaning?.definitions?.[0];
+  const phonetics = firstEntry?.phonetics || [];
+  const pronunciation = firstEntry?.phonetic || phonetics.find((item) => item?.text)?.text || "";
+  const audioUrl = phonetics.find((item) => item?.audio)?.audio || "";
 
   return {
     partOfSpeech: firstMeaning?.partOfSpeech || "",
     definition: firstDefinition?.definition ? `${firstDefinition.definition}.` : "",
     example: firstDefinition?.example || "",
-    synonyms: firstDefinition?.synonyms || firstMeaning?.synonyms || firstEntry?.synonyms || []
+    synonyms: firstDefinition?.synonyms || firstMeaning?.synonyms || firstEntry?.synonyms || [],
+    pronunciation,
+    audioUrl
   };
 }
 
@@ -220,6 +229,12 @@ function showResult(data) {
   easySentenceText.textContent = data.easySentence;
   descriptionText.textContent = data.description;
   synonymText.textContent = data.synonym;
+  pronunciationText.textContent = data.pronunciation || "Vyslovnost nie je dostupna.";
+  if (data.audioUrl) {
+    playPronunciationBtn.classList.remove("hidden");
+  } else {
+    playPronunciationBtn.classList.add("hidden");
+  }
   if (data.imageUrl) {
     wordImage.src = data.imageUrl;
     wordImage.alt = data.imageTitle ? `Obrazok: ${data.imageTitle}` : `Obrazok slova ${data.imageWord}`;
@@ -297,11 +312,53 @@ function clearHistory() {
   statusText.textContent = "Historia bola vymazana.";
 }
 
+function playPronunciation() {
+  if (!currentResult?.audioUrl) {
+    statusText.textContent = "Audio vyslovnost nie je dostupna.";
+    return;
+  }
+
+  const audio = new Audio(currentResult.audioUrl);
+  audio.play().catch(() => {
+    statusText.textContent = "Audio sa nepodarilo prehrat.";
+  });
+}
+
+function playTranslation() {
+  if (!currentResult?.translation) {
+    statusText.textContent = "Preklad nie je dostupny.";
+    return;
+  }
+
+  if (!("speechSynthesis" in window)) {
+    statusText.textContent = "Tvoj prehliadac nepodporuje hlasovy vystup.";
+    return;
+  }
+
+  const utterance = new SpeechSynthesisUtterance(currentResult.translation);
+  utterance.lang = currentResult.direction === "en-sk" ? "sk-SK" : "en-US";
+  utterance.rate = 0.95;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+}
+
 function directionLabel(direction) {
   return direction === "en-sk" ? "EN -> SK" : "SK -> EN";
 }
 
-function buildResultPayload(direction, sourceWord, translation, easySentence, description, synonym, imageWord, imageUrl, imageTitle) {
+function buildResultPayload(
+  direction,
+  sourceWord,
+  translation,
+  easySentence,
+  description,
+  synonym,
+  pronunciation,
+  audioUrl,
+  imageWord,
+  imageUrl,
+  imageTitle
+) {
   const cleanSource = sourceWord.trim().toLowerCase();
   const cleanTranslation = translation.trim().toLowerCase();
 
@@ -314,6 +371,8 @@ function buildResultPayload(direction, sourceWord, translation, easySentence, de
     easySentence,
     description,
     synonym,
+    pronunciation,
+    audioUrl,
     imageWord,
     imageUrl,
     imageTitle
@@ -362,6 +421,8 @@ form.addEventListener("submit", async (event) => {
           local.easy,
           local.description,
           local.synonym,
+          local.pronunciation || "",
+          "",
           local.translation,
           imageData.imageUrl,
           imageData.imageTitle
@@ -379,6 +440,8 @@ form.addEventListener("submit", async (event) => {
           localReverse.easy,
           localReverse.description,
           localReverse.synonym,
+          localReverse.pronunciation || "",
+          "",
           normalizedEn,
           imageData.imageUrl,
           imageData.imageTitle
@@ -398,6 +461,8 @@ form.addEventListener("submit", async (event) => {
       const easySentence = makeEasySentence(englishBaseWord, details.partOfSpeech, details.example);
       const description = makeDescriptionSentence(englishBaseWord, details.definition);
       const synonym = apiSynonym || details.synonyms?.[0] || `similar to ${englishBaseWord}`;
+      const pronunciation = details.pronunciation || `/${englishBaseWord}/`;
+      const audioUrl = details.audioUrl || "";
 
       data = buildResultPayload(
         direction,
@@ -406,6 +471,8 @@ form.addEventListener("submit", async (event) => {
         easySentence,
         description,
         synonym,
+        pronunciation,
+        audioUrl,
         englishBaseWord,
         imageData.imageUrl,
         imageData.imageTitle
@@ -430,6 +497,8 @@ form.addEventListener("submit", async (event) => {
 directionSelect.addEventListener("change", updateDirectionUI);
 saveFavoriteBtn.addEventListener("click", saveFavorite);
 clearHistoryBtn.addEventListener("click", clearHistory);
+playTranslationBtn.addEventListener("click", playTranslation);
+playPronunciationBtn.addEventListener("click", playPronunciation);
 
 updateDirectionUI();
 renderMemory();
