@@ -32,6 +32,7 @@ const STORAGE_KEYS = {
 
 const fallbackDictionary = {
   dom: { translation: "house", easy: "This is my house.", description: "A house is a building where people live.", synonym: "home", pronunciation: "/haʊs/" },
+  pes: { translation: "dog", easy: "The dog is friendly.", description: "A dog is an animal that people often keep as a pet.", synonym: "canine", pronunciation: "/dɔːg/" },
   skola: { translation: "school", easy: "I go to school every morning.", description: "A school is a place where people learn.", synonym: "academy", pronunciation: "/skuːl/" },
   voda: { translation: "water", easy: "I drink water every day.", description: "Water is a clear liquid that people need to live.", synonym: "aqua", pronunciation: "/ˈwɔːtər/" },
   kniha: { translation: "book", easy: "I read a book at night.", description: "A book is a set of written pages.", synonym: "volume", pronunciation: "/bʊk/" },
@@ -141,11 +142,15 @@ async function fetchTranslation(sourceWord, direction) {
   }
 
   const payload = await response.json();
+  const normalizedSource = sanitizeTranslation(sourceWord);
   const rawTranslated = payload?.responseData?.translatedText || "";
-  const rawMatch = payload?.matches?.find((entry) => entry.translation)?.translation || "";
-  const picked = sanitizeTranslation(rawMatch || rawTranslated);
+  const matchCandidates = (payload?.matches || [])
+    .map((entry) => entry?.translation || "")
+    .filter(Boolean);
+  const candidates = [rawTranslated, ...matchCandidates].map((item) => sanitizeTranslation(item));
+  const picked = candidates.find((candidate) => candidate && candidate !== "null" && candidate !== normalizedSource);
 
-  if (!picked || picked === "null") {
+  if (!picked) {
     throw new Error("No translation found.");
   }
 
